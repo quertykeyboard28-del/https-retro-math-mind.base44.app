@@ -2,50 +2,44 @@
 
 ## Scope
 
-Build a local-first web interface for text/image uploads and model-backed chat, with an optional local retrieval helper. This is an application integration, not artificial general intelligence, human-level robotics, or autonomous self-training. The adult persona/demographic request can be implemented as an optional, transparent style setting later; it should not be represented as a real person or used to infer protected traits about users.
+Build a local-first web interface for uploads and model-backed chat, with an optional local retrieval helper. This is an application integration, not artificial general intelligence or autonomous self-training. IBM Bob is a coding/development agent that can assist with implementing and reviewing software; it is not automatically a runtime connector to Confluence, CRM, or arbitrary websites.
 
 ## Components and request flow
 
 ```text
-Browser
-  | HTTPS in production / localhost in development
-  v
-Flask web application
-  |-- /api/upload --> validate --> private local uploads (prototype)
-  |-- /api/chat ----> one selected provider: WiCi One OR Gemini API
-  |-- /health ------> liveness endpoint
-  `-- JCodePy helper --> local FAQ retrieval and arithmetic only
+Browser -> Flask application -> selected chat provider (WiCi or Gemini)
+                       |-> validated upload -> private storage
+                       |-> JCodePy local retrieval / KALKUL8 calculator
+                       `-> (future) queued, allowlisted enterprise import worker
+                               -> Confluence / specified CRM / approved CMS API
 ```
 
-Provider secrets remain server-side. The browser sends the chosen provider and user message; the server forwards the message to exactly one configured provider. Uploaded files are not included in prompts. Add explicit user consent and a threat/privacy review before introducing document-to-model features.
+Provider secrets remain server-side. The current Flask upload/chat prototype is single-user and local-only; it is not yet a production enterprise content transfer service. See [`integrations/README.md`](integrations/README.md) for a secure connector plan and required information before implementing live integrations.
 
 ## Phase 1 — local prototype
 
 - Run Flask on a trusted development host; WiCi must be reachable over that host's LAN.
 - Pair WiCi through its official SDK and inject the device token through the process environment.
-- For Gemini, configure the API key and a currently valid model identifier using environment variables. Check Google's official current model catalog, quotas, terms, and data handling before use. Do not rely on an unverified alias such as “Gemini 4 Carbon.”
-- Test upload validation, unsupported and oversized files, malformed provider responses, missing secrets, and offline/time-out behavior.
-- Use Antigravity, VS Code, or another editor as a development tool; it does not itself train a model or guarantee general intelligence.
+- For Gemini, configure a currently valid model identifier and API key through environment variables; check the provider's current documentation and data handling.
+- Run Python checks/tests directly or through `npm run build` and `npm test` (Gulp invokes Python compile/test tasks).
 
 ## Phase 2 — production web app
 
-1. **Identity/access:** add authentication, per-user file ownership, CSRF protections for cookie sessions, rate limits, quotas, and authorization on every read/delete operation.
-2. **Files:** use private object storage, random keys, content inspection and malware scanning, attachment delivery on a separate origin, explicit retention/deletion, and backups. Never execute uploads or expose the storage bucket publicly.
-3. **Runtime:** deploy with a production WSGI server behind TLS; add secure headers, health/readiness probes, dependency scanning, redacted logs, monitoring, and incident response.
-4. **Secrets:** use a managed secret store, separate credentials by environment, least privilege and rotation. Never put keys in frontend code, browser storage, source, or logs.
-5. **Cloud Run:** Cloud Run can host the web tier, but it does not automatically connect to Wi-Fi-only WiCi One. Keep the UI local or design a reviewed private network path (VPN/private connector/secure gateway) with strict firewall/access controls. Otherwise choose a permitted cloud inference endpoint rather than exposing the device token.
-6. **Optional search/workflow SaaS:** index only approved, non-sensitive fields. Restrict write keys to server-side ingestion and use search-only credentials in the client. Establish consent and data-processing rules before connecting automation/SaaS tools.
+1. Add authentication, per-user ownership, CSRF protections as applicable, rate limits, quotas, and authorization.
+2. Put files in private object storage, not container filesystems; add malware scanning, retention/deletion, and backups.
+3. Use a production WSGI server behind TLS, managed secrets, dependency scans, and redacted observability.
+4. Cloud Run does not automatically connect to Wi-Fi-only WiCi. Design and review an explicit private network path or choose an approved cloud inference endpoint.
+5. Before enterprise ingestion, select a queue/worker and object store, approved source and destination APIs, OAuth scopes, data retention/classification, size limits, and human approval rules. Enforce host allowlists, permission trimming, idempotency, and auditable actions.
+6. Treat `www.turingnewsnetwork.com` as a proposed destination until domain ownership/authorization and its publishing API are verified. No automatic scraping or publishing is configured.
 
 ## Phase 3 — firmware and robotics
 
-Firmware work is separate from the web app. Verify exact board, firmware provenance/checksum, serial port, bootloader/tool versions, stable power, backups, rollback/recovery, and a test device before flashing. Commands such as `mpremote cp` and `reset` must be tailored to the board and firmware format. Never expose firmware flashing as a web endpoint. Keep signed builds and release history for deployments beyond a lab device.
+Firmware work is separate from the web app. Verify exact board, firmware provenance/checksum, serial port, bootloader/tool versions, stable power, backup, and recovery before flashing. Never expose flashing as a web endpoint.
 
-A human-capacity assistant should be designed with clear identity disclosure, safety limits, privacy controls, accessibility, and escalation paths. A conversational style prompt is not a real human identity or evidence of expertise. Do not market a retrieval script or model API wrapper as AGI.
+## Model and workflow governance
 
-## Model updates and evaluation
-
-“Sync models” should mean a controlled selection of provider/model IDs and a versioned configuration—not copying proprietary weights, fine-tuning without data rights, or letting an agent alter production model settings. Store approved model IDs/configuration, test prompts and outputs for quality, safety, and regressions, and require human review before deployment. Model calls, embeddings, retrieval, and fine-tuning are distinct operations with different privacy and cost implications.
+A model can draft summaries or workflow steps, but must not be the authority for access control, CRM mutations, or public publishing. Validate outputs, show a preview with provenance, and require human approval for consequential writes. Do not claim a conversational persona or retrieval helper is AGI.
 
 ## Destructive cloud operations
 
-Deleting a Cloud Run job or Google Cloud project is not part of setup. Before any deletion, verify active identity/project, list affected resources, export needed data, confirm backups and dependencies, and obtain owner approval. Prefer removing a named test resource over deleting a project. Never interpolate untrusted strings into shell commands.
+Deleting a Cloud Run job or Google Cloud project is not app setup. Verify active project, dependencies, backups, and owner approval before any deletion. Never put deletion commands in the Gulp build pipeline.

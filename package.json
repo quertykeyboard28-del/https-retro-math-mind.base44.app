@@ -1,0 +1,13 @@
+{
+  "name": "retro-math-mind",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Build and test the Flask assistant project with Gulp",
+  "scripts": {
+    "build": "gulp build",
+    "test": "gulp test"
+  },
+  "devDependencies": {
+    "gulp": "^5.0.1"
+  }
+}
