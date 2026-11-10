@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Private assistant and file uploads</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    body { max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+    #chat-log { min-height: 8rem; max-height: 24rem; overflow-y: auto; white-space: pre-wrap; }
+    .message { padding: .6rem .8rem; border-radius: .5rem; margin: .5rem 0; background: #f1f3f5; }
+    .error { color: #a00; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Private assistant</h1>
+  <p>Choose WiCi One on your trusted network or a configured Gemini API. Provider credentials stay on the server.</p>
+  <section aria-labelledby="chat-heading">
+    <h2 id="chat-heading">Chat</h2>
+    <div id="chat-log" aria-live="polite"></div>
+    <form id="chat-form">
+      <label for="provider">Model provider</label>
+      <select id="provider" name="provider"><option value="wici">WiCi One (local network)</option><option value="gemini">Google Gemini API</option></select>
+      <label for="message">Message</label>
+      <textarea id="message" name="message" maxlength="4000" required rows="3"></textarea>
+      <button id="send-button" type="submit">Send</button>
+    </form>
+  </section>
+  <section aria-labelledby="upload-heading">
+    <h2 id="upload-heading">Upload a text or image file</h2>
+    <form id="upload-form">
+      <label for="file">File (TXT, JPG, PNG, GIF; max 10 MB)</label>
+      <input id="file" name="file" type="file" accept=".txt,.jpg,.jpeg,.png,.gif" required>
+      <button type="submit">Upload</button>
+    </form>
+    <p id="upload-result" aria-live="polite"></p>
+  </section>
+</main>
+<script>
+  const chatLog = document.querySelector('#chat-log');
+  const chatForm = document.querySelector('#chat-form');
+  const sendButton = document.querySelector('#send-button');
+  chatForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const message = document.querySelector('#message').value.trim();
+    const provider = document.querySelector('#provider').value;
+    if (!message) return;
+    sendButton.disabled = true;
+    const row = document.createElement('p');
+    row.className = 'message';
+    row.textContent = `You: ${message}\nAssistant: Thinking…`;
+    chatLog.append(row);
+    try {
+      const response = await fetch('/api/chat', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message, provider})});
+      const result = await response.json();
+      row.textContent = result.answer ? `You: ${message}\nAssistant (${result.provider}): ${result.answer}` : `Error: ${result.error || 'Request failed.'}`;
+      if (!result.answer) row.classList.add('error');
+    } catch (_) {
+      row.textContent = 'Error: Could not contact the application server.';
+      row.classList.add('error');
+    } finally {
+      sendButton.disabled = false;
+      chatLog.scrollTop = chatLog.scrollHeight;
+      document.querySelector('#message').value = '';
+    }
+  });
+  document.querySelector('#upload-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const resultNode = document.querySelector('#upload-result');
+    try {
+      const response = await fetch('/api/upload', {method: 'POST', body: new FormData(event.currentTarget)});
+      const result = await response.json();
+      resultNode.textContent = result.success ? `Uploaded ${result.original_name}. ` : `Error: ${result.error || 'Upload failed.'}`;
+      if (result.success) {
+        const link = document.createElement('a');
+        link.href = `/api/uploads/${encodeURIComponent(result.filename)}`;
+        link.textContent = 'Download stored file';
+        link.download = result.filename;
+        resultNode.append(link);
+        event.currentTarget.reset();
+      }
+    } catch (_) { resultNode.textContent = 'Error: Could not contact the application server.'; }
+  });
+</script>
+</body>
+</html>
